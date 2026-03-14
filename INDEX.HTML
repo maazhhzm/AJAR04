@@ -1,0 +1,983 @@
+``html
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    
+    <!-- PWA Meta Tags -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="إدارة الإيجارات">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="description" content="نظام إدارة عقارات وإيجارات متكامل">
+    
+    <link rel="manifest" id="dynamic-manifest">
+
+    <title>نظام إدارة الإيجارات</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* --- Variables & Reset --- */
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --primary-light: #eff6ff;
+            --bg: #f1f5f9;
+            --surface: #ffffff;
+            --text: #1e293b;
+            --text-light: #64748b;
+            --danger: #ef4444;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --nav-height: 70px; /* Increased slightly for better touch */
+            --border-radius: 16px;
+            --app-max-width: 800px; /* Narrower max-width for better desktop view */
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07);
+        }
+
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            font-family: 'Tajawal', sans-serif; 
+            -webkit-tap-highlight-color: transparent;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        body { 
+            background-color: var(--bg); 
+            color: var(--text); 
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+            overflow: hidden; 
+            user-select: none;
+            overscroll-behavior-y: none; /* Prevents pull-to-refresh on mobile */
+        }
+
+        /* --- Main Container --- */
+        #app { 
+            flex: 1; 
+            overflow-y: auto; 
+            position: relative; 
+            scroll-behavior: smooth; 
+            padding-bottom: calc(var(--nav-height) + 40px); /* More padding for safe area */
+            width: 100%;
+        }
+
+        #app::-webkit-scrollbar { width: 5px; }
+        #app::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+        /* --- Screens --- */
+        .screen { display: none; padding: 1.5rem; animation: fadeIn 0.3s ease; max-width: 100%; margin: 0 auto; }
+        .screen.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        h1, h2, h3 { color: var(--primary-dark); margin-bottom: 1rem; line-height: 1.3; }
+        h1 { font-size: 1.6rem; font-weight: 800; }
+        h2 { font-size: 1.3rem; border-right: 4px solid var(--primary); padding-right: 12px; margin-top: 1rem; }
+        h3 { font-size: 1.1rem; color: var(--text); margin-top: 1.5rem; }
+
+        /* --- Components --- */
+        .card { background: var(--surface); border-radius: var(--border-radius); padding: 1.2rem; box-shadow: var(--shadow-md); margin-bottom: 1rem; border: 1px solid rgba(0,0,0,0.02); }
+        
+        /* Dashboard Stats */
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+        .stat-box { background: var(--surface); padding: 1.2rem; border-radius: var(--border-radius); text-align: center; box-shadow: var(--shadow-sm); border: 1px solid #e2e8f0; transition: transform 0.1s; }
+        .stat-box:active { transform: scale(0.98); }
+        .stat-icon { font-size: 1.5rem; margin-bottom: 0.5rem; opacity: 0.9; }
+        .stat-val { font-size: 1.2rem; font-weight: 800; display: block; margin-bottom: 0.2rem; line-height: 1.2; }
+        .stat-label { font-size: 0.8rem; color: var(--text-light); }
+
+        /* Forms */
+        .form-group { margin-bottom: 1.2rem; }
+        .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text); font-size: 0.9rem; }
+        .form-group input, .form-group select { 
+            width: 100%; 
+            padding: 0.9rem; 
+            border: 1px solid #cbd5e1; 
+            border-radius: 12px; 
+            font-size: 16px; /* Prevents iOS zoom */
+            background: #f8fafc; 
+            outline: none; 
+            transition: all 0.2s; 
+            appearance: none; 
+            text-align: right;
+        }
+        .form-group input:focus { border-color: var(--primary); background: white; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+        
+        /* Buttons */
+        .btn { width: 100%; padding: 1rem; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; font-size: 1rem; display: flex; justify-content: center; align-items: center; gap: 8px; transition: transform 0.1s, background 0.2s; user-select: none; }
+        .btn:active { transform: scale(0.97); }
+        .btn-primary { background: var(--primary); color: white; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3); }
+        .btn-danger { background: #fee2e2; color: var(--danger); margin-top: 1rem; }
+        .btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); margin-top: 1rem; }
+        .btn-secondary { background: var(--text); color: white; margin-top: 0.5rem; }
+
+        /* List Items (Redesigned for Grid) */
+        .record-item { 
+            background: white; 
+            border-bottom: 1px solid #f1f5f9; 
+            padding: 1rem; 
+            cursor: pointer; 
+            transition: background 0.2s; 
+        }
+        .record-item:active { background: #f8fafc; }
+        .record-item:last-child { border-bottom: none; }
+        
+        .record-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; }
+        .record-header h4 { font-size: 1rem; font-weight: 700; color: var(--text); }
+        .record-header span { font-size: 0.8rem; color: var(--text-light); }
+
+        .record-stats-grid { 
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 8px; 
+        }
+        .mini-stat-box { 
+            background: #f8fafc; 
+            padding: 8px; 
+            border-radius: 8px; 
+            text-align: center; 
+            border: 1px solid #e2e8f0;
+        }
+        .mini-stat-val { font-size: 0.85rem; font-weight: 700; display: block; margin-bottom: 2px; }
+        .mini-stat-label { font-size: 0.65rem; color: var(--text-light); }
+        
+        .text-primary { color: var(--primary); }
+        .text-success { color: var(--success); }
+        .text-danger { color: var(--danger); }
+
+        /* Bottom Nav */
+        .bottom-nav { 
+            position: fixed; bottom: 0; left: 0; width: 100%; height: var(--nav-height); 
+            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);
+            display: flex; justify-content: space-around; align-items: center; 
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05); z-index: 100; 
+            padding-bottom: env(safe-area-inset-bottom); 
+        }
+        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #94a3b8; font-size: 0.7rem; gap: 4px; cursor: pointer; height: 100%; transition: color 0.2s; }
+        .nav-item i { font-size: 1.2rem; margin-bottom: 2px; transition: transform 0.2s; }
+        .nav-item.active { color: var(--primary); }
+        .nav-item.active i { transform: translateY(-2px); }
+
+        /* Overlay */
+        .detail-overlay { position: fixed; top: 0; right: 0; width: 100%; height: 100%; background: var(--bg); z-index: 150; transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); overflow-y: auto; padding-bottom: calc(var(--nav-height) + 20px); }
+        .detail-overlay.open { transform: translateX(0); }
+        .overlay-header { background: white; padding: 1rem; display: flex; align-items: center; justify-content: space-between; box-shadow: var(--shadow-sm); position: sticky; top: 0; z-index: 10; }
+        .btn-back { background: #f1f5f9; border: none; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; cursor: pointer; color: var(--text); }
+        .btn-icon-only { background: transparent; border: none; cursor: pointer; font-size: 1.2rem; padding: 8px; border-radius: 50%; color: var(--text-light); }
+        .btn-icon-only:hover { background: #f1f5f9; color: var(--primary); }
+
+        /* Modals */
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 200; display: none; align-items: flex-end; justify-content: center; backdrop-filter: blur(2px); }
+        .modal.open { display: flex; }
+        .modal-content { background: white; width: 100%; max-width: 600px; border-radius: 20px 20px 0 0; padding: 1.5rem; animation: slideUp 0.3s ease; max-height: 90vh; overflow-y: auto; margin: auto; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+        /* Tables & Reports */
+        .table-container { background: white; border-radius: 12px; box-shadow: var(--shadow-sm); overflow: hidden; border: 1px solid #e2e8f0; margin-bottom: 1rem; }
+        .schedule-table { width: 100%; border-collapse: collapse; }
+        .schedule-table th { background: #f8fafc; color: var(--text-light); font-weight: 600; text-align: right; padding: 12px; font-size: 0.8rem; white-space: nowrap; }
+        .schedule-table td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 0.9rem; vertical-align: middle; }
+        .schedule-table tr:last-child td { border-bottom: none; }
+        .sch-action-cell { text-align: left; white-space: nowrap; width: 80px; }
+        
+        .status-badge { padding: 4px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; display: inline-block; }
+        .badge-paid { background: #dcfce7; color: #166534; }
+        .badge-unpaid { background: #fee2e2; color: #991b1b; }
+        .badge-partial { background: #fef3c7; color: #92400e; }
+        .money-text { font-family: 'Courier New', monospace; font-weight: 700; letter-spacing: -0.5px; direction: ltr; display: inline-block; }
+        
+        .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; }
+        .table-responsive table { min-width: 600px; } 
+
+        /* Reports */
+        .report-paper { background: white; padding: 2rem; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 1rem; position: relative; }
+        .report-header { text-align: center; border-bottom: 2px dashed #ccc; padding-bottom: 1rem; margin-bottom: 1.5rem; }
+        .report-row { display: flex; justify-content: space-between; margin-bottom: 0.5rem; border-bottom: 1px solid #f0f0f0; padding: 5px 0; font-size: 0.9rem; }
+        .report-summary-card { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 1.2rem; margin-bottom: 1.5rem; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+        .rs-item { text-align: center; border-right: 1px solid rgba(0,0,0,0.05); }
+        .rs-item:last-child { border-right: none; }
+        .rs-val { font-size: 1.1rem; font-weight: 800; color: var(--primary-dark); display: block; }
+        .rs-label { font-size: 0.8rem; color: var(--text-light); font-weight: 600; }
+
+        .report-table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 1rem; }
+        .report-table { width: 100%; border-collapse: collapse; min-width: 700px; font-size: 0.85rem; } 
+        .report-table th, .report-table td { border: 1px solid #ddd; padding: 8px; text-align: center; white-space: nowrap; } 
+        .report-table th { background: #f8fafc; font-weight: 700; }
+
+        /* Toast */
+        .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); background: #333; color: white; padding: 12px 24px; border-radius: 50px; z-index: 300; transition: transform 0.3s; display: flex; align-items: center; gap: 10px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); min-width: 300px; justify-content: center; font-size: 0.9rem; }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+        .toast.success { background: var(--success); }
+        .toast.error { background: var(--danger); }
+
+        /* Desktop Media Query */
+        @media (min-width: 768px) {
+            #app { 
+                max-width: var(--app-max-width); 
+                margin: 0 auto; 
+                background: white; 
+                box-shadow: 0 0 40px rgba(0,0,0,0.1); 
+                height: 90vh; 
+                margin-top: 5vh;
+                border-radius: 24px;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+            }
+            body { background: #e2e8f0; align-items: center; height: 100vh; overflow: hidden;}
+            .stats-grid { grid-template-columns: repeat(4, 1fr); }
+            .bottom-nav { 
+                max-width: var(--app-max-width); 
+                left: 50%; 
+                transform: translateX(-50%); 
+                border-radius: 0 0 24px 24px; 
+                height: 70px; 
+            }
+            .detail-overlay { 
+                max-width: var(--app-max-width); 
+                left: 50%; 
+                transform: translateX(120%); 
+                border-radius: 24px;
+                box-shadow: 0 0 50px rgba(0,0,0,0.2);
+            }
+            .detail-overlay.open { transform: translateX(-50%); right: auto; }
+        }
+        
+        /* Print */
+        @media print {
+            body * { visibility: hidden; }
+            .modal.open, .modal.open * { visibility: visible; }
+            .modal { position: absolute; left: 0; top: 0; background: white; height: auto; display: block; width: 100%; max-width: 100%; backdrop-filter: none; }
+            .modal-content { box-shadow: none; max-height: none; width: 100%; border-radius: 0; padding: 0; }
+            .no-print { display: none !important; }
+            .table-responsive, .report-table-responsive { overflow: visible; }
+            .report-table th, .report-table td { white-space: normal; }
+            .report-paper { box-shadow: none; border: none; padding: 0; }
+            #app { height: auto; overflow: visible; box-shadow: none; margin: 0; max-width: 100%; border-radius: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <main id="app">
+        <!-- Screen 1: Home Dashboard -->
+        <div id="screen-home" class="screen active">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1.5rem;">
+                <h1>لوحة التحكم</h1>
+                <span style="font-size:0.85rem; color:var(--text-light); background:#e2e8f0; padding:4px 10px; border-radius:20px;" id="currentDateDisplay"></span>
+            </div>
+
+            <!-- Updated Dashboard: Now shows To-Date values -->
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <i class="fa-solid fa-building stat-icon text-primary"></i>
+                    <span class="stat-val" id="dash-total-props">0</span>
+                    <span class="stat-label">عدد العقارات</span>
+                </div>
+                <div class="stat-box">
+                    <i class="fa-solid fa-calendar-check stat-icon text-primary"></i>
+                    <span class="stat-val" id="dash-total-due-todate">0</span>
+                    <span class="stat-label">الواجب (حتى اليوم)</span>
+                </div>
+                <div class="stat-box">
+                    <i class="fa-solid fa-hand-holding-dollar stat-icon text-success"></i>
+                    <span class="stat-val" id="dash-total-paid-todate">0</span>
+                    <span class="stat-label">المدفوع (حتى اليوم)</span>
+                </div>
+                <div class="stat-box">
+                    <i class="fa-solid fa-money-bill-transfer stat-icon text-danger"></i>
+                    <span class="stat-val" id="dash-total-remaining-todate">0</span>
+                    <span class="stat-label">المتبقي (حتى اليوم)</span>
+                </div>
+            </div>
+
+            <h2>أحدث النشاطات</h2>
+            <div class="card" id="recent-activity-list" style="padding:0;">
+                <p style="text-align:center; color:#94a3b8; padding:1rem;">لا توجد نشاطات حديثة</p>
+            </div>
+            
+            <button class="btn btn-outline" onclick="navTo('screen-add')">
+                <i class="fa-solid fa-plus"></i> إضافة عقد جديد
+            </button>
+        </div>
+
+        <!-- Screen 2: Add Property -->
+        <div id="screen-add" class="screen">
+            <h1>إدخال بيانات عقار</h1>
+            <form onsubmit="handleAddProperty(event)">
+                <div class="card">
+                    <div class="form-group"><label>اسم العقار</label><input type="text" id="propName" required placeholder="مثال: شقة 101 - الرياض"></div>
+                    <div class="form-group"><label>اسم المستأجر</label><input type="text" id="tenantName" required placeholder="الاسم الكامل"></div>
+                    <div class="form-group"><label>اسم المالك</label><input type="text" id="landlordName" required placeholder="الاسم الكامل"></div>
+                    <div class="form-group"><label>الإيجار الشهري (ريال)</label><input type="number" id="monthlyRent" required min="1" placeholder="0.00"></div>
+                    <div class="form-group" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                        <div><label>تاريخ البداية</label><input type="date" id="startDate" required></div>
+                        <div><label>مدة العقد (شهور)</label><input type="number" id="durationMonths" required min="1" placeholder="12"></div>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">حفظ البيانات</button>
+                <button type="button" class="btn btn-danger" onclick="navTo('screen-home')">إلغاء</button>
+            </form>
+        </div>
+
+        <!-- Screen 3: Records List (Updated with Grid Stats) -->
+        <div id="screen-records" class="screen">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; position:sticky; top:0; background:var(--bg); z-index:5; padding-bottom:10px;">
+                <h1 style="margin:0;">سجلات العقارات</h1>
+                <div style="position:relative;">
+                    <i class="fa-solid fa-search" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:0.9rem;"></i>
+                    <input type="text" id="searchRecords" placeholder="بحث..." style="padding:8px 35px 8px 10px; border-radius:20px; border:1px solid #ddd; width:150px; font-size:0.9rem;" oninput="renderRecordsList()">
+                </div>
+            </div>
+            <div class="card" style="padding:0; margin-bottom:20px;" id="recordsListContainer"></div>
+        </div>
+
+        <!-- Screen 4: Reports -->
+        <div id="screen-reports" class="screen">
+            <h1>التقارير المالية</h1>
+            
+            <div class="card">
+                <h3 style="margin-bottom:1rem; border-bottom:1px solid #eee; padding-bottom:0.5rem;">ملخص مالي عام (حتى اليوم)</h3>
+                <div class="report-row"><span>إجمالي قيمة العقود</span><strong id="report-total-contracts">0</strong></div>
+                <div class="report-row"><span>المستحق حتى تاريخه</span><strong id="report-total-due-date" style="color:var(--primary)">0</strong></div>
+                <div class="report-row"><span>إجمالي المتأخرات</span><strong id="report-total-due" style="color:var(--danger)">0</strong></div>
+                <div class="report-row" style="border:none"><span>إجمالي المدفوع</span><strong id="report-total-paid" style="color:var(--success)">0</strong></div>
+            </div>
+
+            <button class="btn btn-secondary" onclick="generateComprehensiveReport()">
+                <i class="fa-solid fa-file-lines"></i> تقرير شامل جميع العقارات
+            </button>
+
+            <h2 style="margin-top: 1.5rem;">تقارير العقارات الفردية</h2>
+            <div id="individual-reports-list" class="card" style="padding:0;"></div>
+        </div>
+
+        <!-- Screen 5: Settings -->
+        <div id="screen-settings" class="screen">
+            <h1>الإعدادات</h1>
+            <div class="card">
+                <div class="record-item" onclick="confirmClearData()" style="border-radius:12px; border:1px solid #fee2e2; background:#fff;">
+                    <div class="record-header" style="margin-bottom:0;">
+                        <h4 style="color:var(--danger); margin:0;">حذف جميع البيانات</h4>
+                        <i class="fa-solid fa-trash text-danger"></i>
+                    </div>
+                    <p style="font-size:0.8rem; color:var(--text-light);">مسح العقود والمدفوعات نهائياً</p>
+                </div>
+                <div class="record-item" style="border:none; border-radius:12px;">
+                    <div class="record-header" style="margin-bottom:0;">
+                        <h4 style="margin:0;">حول التطبيق</h4>
+                        <i class="fa-solid fa-mobile-screen text-primary"></i>
+                    </div>
+                    <p style="font-size:0.8rem; color:var(--text-light);">نسخة PWA متطورة v1.1</p>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <div class="nav-item active" onclick="navTo('screen-home')"><i class="fa-solid fa-house"></i><span>الرئيسية</span></div>
+        <div class="nav-item" onclick="navTo('screen-records')"><i class="fa-solid fa-list-check"></i><span>السجلات</span></div>
+        <div class="nav-item" onclick="navTo('screen-add')">
+            <div style="background:var(--primary); color:white; width:55px; height:55px; border-radius:50%; display:flex; align-items:center; justify-content:center; margin-top:-30px; box-shadow:0 4px 10px rgba(37,99,235,0.4); border:4px solid var(--bg);"><i class="fa-solid fa-plus" style="margin:0; font-size:1.2rem;"></i></div>
+        </div>
+        <div class="nav-item" onclick="navTo('screen-reports')"><i class="fa-solid fa-chart-pie"></i><span>التقارير</span></div>
+        <div class="nav-item" onclick="navTo('screen-settings')"><i class="fa-solid fa-gear"></i><span>الإعدادات</span></div>
+    </nav>
+
+    <!-- Overlay: Property Detail -->
+    <div id="detailOverlay" class="detail-overlay">
+        <div class="overlay-header">
+            <div class="overlay-header-left">
+                <button class="btn-back" onclick="closeDetailOverlay()"><i class="fa-solid fa-arrow-right"></i></button>
+                <h3 style="margin:0">تفاصيل العقار</h3>
+            </div>
+            <div style="display:flex; gap:5px;">
+                <button class="btn-icon-only text-primary" onclick="openEditModal()" title="تعديل"><i class="fa-solid fa-pen"></i></button>
+                <button class="btn-icon-only text-danger" onclick="confirmDeleteProperty()" title="حذف"><i class="fa-solid fa-trash"></i></button>
+            </div>
+        </div>
+        <div id="detailContent" style="padding:1rem;"></div>
+        <div style="padding:1rem; background:white; position:sticky; bottom:0; box-shadow:0 -2px 10px rgba(0,0,0,0.05); z-index:20;">
+            <button class="btn btn-primary" onclick="openPaymentModalFromDetail()"><i class="fa-solid fa-money-bill-wave"></i> تسديد إيجار جديد</button>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="editPropertyModal" class="modal">
+        <div class="modal-content">
+            <h2 style="text-align:center; margin-bottom:1rem;">تعديل بيانات العقار</h2>
+            <form onsubmit="handleUpdateProperty(event)">
+                <input type="hidden" id="editPropId">
+                <div class="card" style="margin-bottom:1rem;">
+                    <div class="form-group"><label>اسم العقار</label><input type="text" id="editPropName" required></div>
+                    <div class="form-group"><label>اسم المستأجر</label><input type="text" id="editTenantName" required></div>
+                    <div class="form-group"><label>اسم المالك</label><input type="text" id="editLandlordName" required></div>
+                    <div class="form-group"><label>الإيجار الشهري</label><input type="number" id="editMonthlyRent" required min="1"></div>
+                    <div class="form-group" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                        <div><label>تاريخ البداية</label><input type="date" id="editStartDate" required></div>
+                        <div><label>المدة (شهور)</label><input type="number" id="editDurationMonths" required min="1"></div>
+                    </div>
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <button type="button" class="btn btn-danger" onclick="closeModals()">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">حفظ التعديلات</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="paymentModal" class="modal">
+        <div class="modal-content">
+            <h2 style="text-align:center; margin-bottom:0.5rem;">تسديد إيجار</h2>
+            <p id="paymentModalSubtitle" style="text-align:center; color:var(--text-light); margin-bottom:1.5rem; font-size:0.9rem;"></p>
+            <form onsubmit="handleAddPayment(event)">
+                <input type="hidden" id="paymentPropId">
+                <div class="form-group"><label>شهر السداد</label><input type="month" id="paymentMonth" required></div>
+                <div class="form-group"><label>تاريخ التسديد الفعلي</label><input type="date" id="paymentDate" required></div>
+                <div class="form-group"><label>المبلغ (ريال)</label><input type="number" id="paymentAmount" required min="1" placeholder="0.00"></div>
+                <div class="form-group"><label>ملاحظات</label><input type="text" id="paymentNote" placeholder="اختياري"></div>
+                <div style="display:flex; gap:10px; margin-top:2rem;">
+                    <button type="button" class="btn btn-danger" onclick="closeModals()">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">تأكيد السداد</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="editPaymentModal" class="modal">
+        <div class="modal-content">
+            <h2 style="text-align:center; margin-bottom:1rem;">تعديل عملية السداد</h2>
+            <form onsubmit="handleUpdatePayment(event)">
+                <input type="hidden" id="editPaymentId">
+                <div class="card">
+                    <div class="form-group"><label>تاريخ التسديد</label><input type="date" id="editPaymentDate" required></div>
+                    <div class="form-group"><label>المبلغ المسدد</label><input type="number" id="editPaymentAmount" required min="1"></div>
+                    <div class="form-group"><label>ملاحظات</label><input type="text" id="editPaymentNote" placeholder="اختياري"></div>
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <button type="button" class="btn btn-danger" onclick="closeModals()">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">حفظ التعديل</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="deletePaymentModal" class="modal">
+        <div class="modal-content" style="text-align: center;">
+            <i class="fa-solid fa-triangle-exclamation" style="font-size: 3rem; color: var(--warning); margin-bottom: 1rem;"></i>
+            <h2>تأكيد الحذف</h2>
+            <p style="margin-bottom: 2rem; color: var(--text-light);">سيتم خصم المبلغ وإعادته للمتبقي.</p>
+            <input type="hidden" id="deletePaymentId">
+            <div style="display:flex; gap:10px;">
+                <button class="btn btn-danger" onclick="executeDeletePayment()">نعم، احذف</button>
+                <button class="btn btn-outline" onclick="closeModals()">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="reportModal" class="modal">
+        <div class="modal-content">
+            <div class="no-print" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap: wrap; gap:10px;">
+                <h2>معاينة التقرير</h2>
+                <div>
+                    <button onclick="printReport()" style="background:var(--text); color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; margin-left:5px;"><i class="fa-solid fa-print"></i> طباعة</button>
+                    <button onclick="document.getElementById('reportModal').classList.remove('open')" style="background:transparent; border:1px solid #ddd; padding:8px 15px; border-radius:8px; cursor:pointer; font-size:1.2rem;">&times;</button>
+                </div>
+            </div>
+            <div id="reportPaperContent"></div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast">
+        <i class="fa-solid fa-circle-check"></i> 
+        <span id="toastMsg">تمت العملية</span>
+    </div>
+
+    <script>
+        // --- PWA Logic ---
+        const manifestData = {
+            "name": "نظام إدارة الإيجارات",
+            "short_name": "الإيجارات",
+            "start_url": ".",
+            "display": "standalone",
+            "background_color": "#f1f5f9",
+            "theme_color": "#2563eb",
+            "orientation": "portrait",
+            "icons": [
+                { "src": "https://picsum.photos/seed/icon192/192/192", "sizes": "192x192", "type": "image/jpeg" },
+                { "src": "https://picsum.photos/seed/icon512/512/512", "sizes": "512x512", "type": "image/jpeg" }
+            ]
+        };
+        const stringManifest = JSON.stringify(manifestData);
+        const blobManifest = new Blob([stringManifest], {type: 'application/manifest+json'});
+        document.querySelector('#dynamic-manifest').setAttribute('href', URL.createObjectURL(blobManifest));
+
+        const swCode = `self.addEventListener('install', e => self.skipWaiting()); self.addEventListener('activate', e => e.waitUntil(clients.claim())); self.addEventListener('fetch', e => e.respondWith(fetch(e.request).catch(() => caches.match(e.request))));`;
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register(URL.createObjectURL(new Blob([swCode], {type: 'text/javascript'}))).catch(() => {});
+
+        // --- App State ---
+        let properties = JSON.parse(localStorage.getItem('app_properties')) || [];
+        let transactions = JSON.parse(localStorage.getItem('app_transactions')) || [];
+        let currentDetailId = null;
+
+        // --- Utilities ---
+        function saveData() {
+            localStorage.setItem('app_properties', JSON.stringify(properties));
+            localStorage.setItem('app_transactions', JSON.stringify(transactions));
+            refreshAllScreens();
+        }
+        function generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
+        function formatCurrency(num) { return new Intl.NumberFormat('ar-SA', { style: 'currency', currency: 'SAR' }).format(num); }
+        function formatDate(str) { if(!str) return '-'; return new Date(str).toLocaleDateString('ar-SA'); }
+        function showToast(msg, type = 'success') {
+            const t = document.getElementById('toast');
+            const icon = t.querySelector('i');
+            document.getElementById('toastMsg').innerText = msg;
+            t.className = `toast ${type}`;
+            icon.className = type === 'error' ? 'fa-solid fa-circle-xmark' : 'fa-solid fa-circle-check';
+            requestAnimationFrame(() => t.classList.add('show'));
+            setTimeout(() => t.classList.remove('show'), 3000);
+        }
+
+        // --- Navigation ---
+        function navTo(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            const map = { 'screen-home': 0, 'screen-records': 1, 'screen-add': 2, 'screen-reports': 3, 'screen-settings': 4 };
+            if(map[screenId] !== undefined) document.querySelectorAll('.nav-item')[map[screenId]].classList.add('active');
+            
+            if(screenId === 'screen-home') renderHome();
+            if(screenId === 'screen-records') renderRecordsList();
+            if(screenId === 'screen-reports') renderReportsScreen();
+            if(screenId === 'screen-add') {
+                document.querySelector('#screen-add form').reset();
+                document.getElementById('startDate').valueAsDate = new Date();
+            }
+            document.getElementById('app').scrollTop = 0;
+        }
+
+        function refreshAllScreens() {
+            renderHome();
+            renderRecordsList();
+            renderReportsScreen();
+            if(currentDetailId) renderDetailContent(currentDetailId);
+        }
+
+        // --- Logic Helper: Calculate To-Date Values ---
+        function calculateSummaryToDate(prop, propTrans) {
+            const start = new Date(prop.startDate);
+            const now = new Date();
+            let totalDue = 0;
+            let totalPaid = 0;
+
+            // If contract hasn't started
+            if (now < start) {
+                return { due: 0, paid: 0, remaining: 0, started: false };
+            }
+
+            let current = new Date(start);
+            while (current <= now) {
+                const key = current.toISOString().slice(0, 7);
+                totalDue += prop.monthlyRent;
+                // Sum payments for this month
+                totalPaid += propTrans.filter(t => t.month === key).reduce((s,t) => s+t.amount, 0);
+                
+                current.setMonth(current.getMonth() + 1);
+                current.setDate(1);
+            }
+            return { due: totalDue, paid: totalPaid, remaining: totalDue - totalPaid, started: true };
+        }
+
+        // --- Home Screen (Updated) ---
+        function renderHome() {
+            document.getElementById('currentDateDisplay').innerText = new Date().toLocaleDateString('ar-SA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            
+            let totalProps = properties.length;
+            let totalContractVal = 0, recentActivityHTML = '';
+            
+            // To-Date Aggregates
+            let totalDueToDate = 0;
+            let totalPaidToDate = 0;
+
+            properties.forEach(p => {
+                const propTrans = transactions.filter(t => t.propertyId === p.id);
+                totalContractVal += (p.monthlyRent * p.durationMonths);
+                
+                // Calculate To-Date for Dashboard
+                const summary = calculateSummaryToDate(p, propTrans);
+                totalDueToDate += summary.due;
+                totalPaidToDate += summary.paid;
+            });
+
+            const totalRemainingToDate = totalDueToDate - totalPaidToDate;
+
+            document.getElementById('dash-total-props').innerText = totalProps;
+            document.getElementById('dash-total-due-todate').innerText = formatCurrency(totalDueToDate);
+            document.getElementById('dash-total-paid-todate').innerText = formatCurrency(totalPaidToDate);
+            document.getElementById('dash-total-remaining-todate').innerText = formatCurrency(totalRemainingToDate);
+
+            const recentTrans = [...transactions].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 3);
+            if(recentTrans.length > 0) {
+                recentActivityHTML = recentTrans.map(t => {
+                    const prop = properties.find(p => p.id === t.propertyId);
+                    const name = prop ? prop.propertyName : 'عقار محذوف';
+                    return `<div class="record-item"><div class="record-info"><h4>سداد: ${name}</h4><p>${formatDate(t.paymentDate)}</p></div><span class="money-text text-success">+${formatCurrency(t.amount)}</span></div>`;
+                }).join('');
+            } else {
+                recentActivityHTML = '<p style="text-align:center; color:#94a3b8; padding:1rem;">لا توجد نشاطات حديثة</p>';
+            }
+            document.getElementById('recent-activity-list').innerHTML = recentActivityHTML;
+        }
+
+        // --- Add Property ---
+        function handleAddProperty(e) {
+            e.preventDefault();
+            const newProp = {
+                id: generateId(),
+                propertyName: document.getElementById('propName').value,
+                tenantName: document.getElementById('tenantName').value,
+                landlordName: document.getElementById('landlordName').value,
+                monthlyRent: parseFloat(document.getElementById('monthlyRent').value),
+                startDate: document.getElementById('startDate').value,
+                durationMonths: parseInt(document.getElementById('durationMonths').value),
+                createdAt: new Date().toISOString()
+            };
+            properties.push(newProp);
+            saveData();
+            showToast('تم إضافة العقار بنجاح');
+            navTo('screen-records');
+        }
+
+        // --- Records List (Updated with Grid Stats) ---
+        function renderRecordsList() {
+            const list = document.getElementById('recordsListContainer');
+            const search = document.getElementById('searchRecords').value.toLowerCase();
+            list.innerHTML = '';
+            
+            const filtered = properties.filter(p => 
+                p.propertyName.toLowerCase().includes(search) || 
+                p.tenantName.toLowerCase().includes(search)
+            );
+
+            if(filtered.length === 0) {
+                list.innerHTML = '<p style="text-align:center; padding:2rem; color:#94a3b8;">لا توجد سجلات مطابقة</p>';
+                return;
+            }
+
+            filtered.forEach(p => {
+                const propTrans = transactions.filter(t => t.propertyId === p.id);
+                
+                // --- New Calculation Logic ---
+                const summary = calculateSummaryToDate(p, propTrans);
+
+                const div = document.createElement('div');
+                div.className = 'record-item';
+                div.onclick = () => openDetailOverlay(p.id);
+                
+                // Building the new HTML structure with a grid for the 3 stats
+                div.innerHTML = `
+                    <div class="record-header">
+                        <h4>${p.propertyName}</h4>
+                        <span>${p.tenantName}</span>
+                    </div>
+                    <div class="record-stats-grid">
+                        <div class="mini-stat-box">
+                            <span class="mini-stat-val text-primary">${formatCurrency(summary.due)}</span>
+                            <span class="mini-stat-label">الواجب (اليوم)</span>
+                        </div>
+                        <div class="mini-stat-box">
+                            <span class="mini-stat-val text-success">${formatCurrency(summary.paid)}</span>
+                            <span class="mini-stat-label">المدفوع</span>
+                        </div>
+                        <div class="mini-stat-box" style="background:#fef2f2; border-color:#fee2e2;">
+                            <span class="mini-stat-val text-danger">${formatCurrency(summary.remaining)}</span>
+                            <span class="mini-stat-label">المتبقي</span>
+                        </div>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        // --- Detail View ---
+        function openDetailOverlay(id) {
+            currentDetailId = id;
+            document.getElementById('detailOverlay').classList.add('open');
+            renderDetailContent(id);
+        }
+        function closeDetailOverlay() {
+            document.getElementById('detailOverlay').classList.remove('open');
+            currentDetailId = null;
+        }
+        function renderDetailContent(id) {
+            const prop = properties.find(p => p.id === id);
+            if(!prop) return;
+            const container = document.getElementById('detailContent');
+            
+            const totalContract = prop.monthlyRent * prop.durationMonths;
+            const totalPaid = transactions.filter(t => t.propertyId === id).reduce((s,t) => s+t.amount, 0);
+            const totalRemaining = totalContract - totalPaid;
+
+            let tableRows = '';
+            const start = new Date(prop.startDate);
+            
+            for(let i=0; i<prop.durationMonths; i++) {
+                const d = new Date(start);
+                d.setMonth(d.getMonth() + i);
+                const key = d.toISOString().slice(0, 7);
+                const mName = d.toLocaleDateString('ar-SA', { month: 'long', year: 'numeric' });
+                const trans = transactions.find(t => t.month === key && t.propertyId === id);
+                const paid = trans ? trans.amount : 0;
+                const remaining = prop.monthlyRent - paid;
+                let statusClass = 'badge-unpaid', statusText = 'غير مدفوع';
+                if (paid >= prop.monthlyRent) { statusClass = 'badge-paid'; statusText = 'مدفوع'; } 
+                else if (paid > 0) { statusClass = 'badge-partial'; statusText = 'جزئي'; }
+
+                let actionsHTML = '-';
+                if (trans) {
+                    actionsHTML = `<button class="btn-icon-only text-primary" style="padding:4px;" onclick="openEditPaymentModal('${trans.id}')"><i class="fa-solid fa-pen"></i></button><button class="btn-icon-only text-danger" style="padding:4px;" onclick="openDeletePaymentModal('${trans.id}')"><i class="fa-solid fa-trash"></i></button>`;
+                }
+                tableRows += `<tr><td>${mName}</td><td><span class="status-badge ${statusClass}">${statusText}</span></td><td class="money-text">${formatCurrency(paid)}/${formatCurrency(prop.monthlyRent)}</td><td class="money-text">${formatCurrency(remaining)}</td><td class="sch-action-cell">${actionsHTML}</td></tr>`;
+            }
+
+            container.innerHTML = `
+                <div class="record-stats-grid" style="margin-bottom:1.5rem; gap:10px;">
+                    <div class="mini-stat-box" style="padding:1rem;"><span class="mini-stat-label">قيمة العقد</span><span class="mini-stat-val">${formatCurrency(totalContract)}</span></div>
+                    <div class="mini-stat-box" style="padding:1rem; background:#ecfdf5; border-color:#a7f3d0;"><span class="mini-stat-label text-success">المدفوع</span><span class="mini-stat-val text-success">${formatCurrency(totalPaid)}</span></div>
+                    <div class="mini-stat-box" style="padding:1rem; background:#fef2f2; border-color:#fecaca;"><span class="mini-stat-label text-danger">المتبقي</span><span class="mini-stat-val text-danger">${formatCurrency(totalRemaining)}</span></div>
+                </div>
+                
+                <div class="card">
+                    <div class="report-row"><span>العقار:</span> <strong>${prop.propertyName}</strong></div>
+                    <div class="report-row"><span>المستأجر:</span> <strong>${prop.tenantName}</strong></div>
+                    <div class="report-row" style="border:none"><span>الإيجار الشهري:</span> <strong>${formatCurrency(prop.monthlyRent)}</strong></div>
+                </div>
+                <h3>جدول الاستحقاقات</h3>
+                <div class="table-container"><div class="table-responsive"><table class="schedule-table"><thead><tr><th>الشهر</th><th>الحالة</th><th>المدفوع / الواجب</th><th>المتبقي</th><th style="text-align:left">إجراءات</th></tr></thead><tbody>${tableRows}</tbody></table></div></div>
+            `;
+        }
+
+        // --- Edit/Delete Property ---
+        function openEditModal() {
+            if (!currentDetailId) return;
+            const prop = properties.find(p => p.id === currentDetailId);
+            if (!prop) return;
+            document.getElementById('editPropId').value = prop.id;
+            document.getElementById('editPropName').value = prop.propertyName;
+            document.getElementById('editTenantName').value = prop.tenantName;
+            document.getElementById('editLandlordName').value = prop.landlordName;
+            document.getElementById('editMonthlyRent').value = prop.monthlyRent;
+            document.getElementById('editStartDate').value = prop.startDate;
+            document.getElementById('editDurationMonths').value = prop.durationMonths;
+            document.getElementById('editPropertyModal').classList.add('open');
+        }
+        function handleUpdateProperty(e) {
+            e.preventDefault();
+            const id = document.getElementById('editPropId').value;
+            const index = properties.findIndex(p => p.id === id);
+            if (index !== -1) {
+                properties[index] = { ...properties[index], propertyName: document.getElementById('editPropName').value, tenantName: document.getElementById('editTenantName').value, landlordName: document.getElementById('editLandlordName').value, monthlyRent: parseFloat(document.getElementById('editMonthlyRent').value), startDate: document.getElementById('editStartDate').value, durationMonths: parseInt(document.getElementById('editDurationMonths').value) };
+                saveData();
+                closeModals();
+                renderDetailContent(id);
+                showToast('تم التعديل');
+            }
+        }
+        function confirmDeleteProperty() {
+            if (!currentDetailId) return;
+            if(confirm('تنبيه: سيتم حذف العقار وسجلاته نهائياً. هل أنت متأكد؟')) {
+                properties = properties.filter(p => p.id !== currentDetailId);
+                transactions = transactions.filter(t => t.propertyId !== currentDetailId);
+                saveData();
+                closeDetailOverlay();
+                renderRecordsList();
+                showToast('تم الحذف', 'error');
+            }
+        }
+
+        // --- Payment Actions ---
+        function openPaymentModalFromDetail() {
+            if(!currentDetailId) return;
+            const prop = properties.find(p => p.id === currentDetailId);
+            document.getElementById('paymentPropId').value = currentDetailId;
+            document.getElementById('paymentModalSubtitle').innerText = `تسديد: ${prop.tenantName}`;
+            const today = new Date();
+            document.getElementById('paymentMonth').value = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`;
+            document.getElementById('paymentDate').valueAsDate = new Date();
+            document.getElementById('paymentAmount').value = '';
+            document.getElementById('paymentNote').value = '';
+            document.getElementById('paymentModal').classList.add('open');
+        }
+        function handleAddPayment(e) {
+            e.preventDefault();
+            const propId = document.getElementById('paymentPropId').value;
+            const month = document.getElementById('paymentMonth').value;
+            const paymentDate = document.getElementById('paymentDate').value;
+            const amount = parseFloat(document.getElementById('paymentAmount').value);
+            const note = document.getElementById('paymentNote').value;
+
+            const existing = transactions.find(t => t.propertyId === propId && t.month === month);
+            if(existing) {
+                if(!confirm('يوجد سداد لهذا الشهر. هل تريد الإضافة؟')) return;
+                existing.amount += amount;
+                existing.paymentDate = paymentDate;
+                existing.note = (existing.note || '') + ' | ' + note;
+            } else {
+                transactions.push({ id: generateId(), propertyId: propId, amount, month, note, paymentDate: paymentDate, date: new Date().toISOString() });
+            }
+            saveData();
+            closeModals();
+            showToast('تم التسديد');
+        }
+        function openEditPaymentModal(transId) {
+            const trans = transactions.find(t => t.id === transId);
+            if(!trans) return;
+            document.getElementById('editPaymentId').value = trans.id;
+            document.getElementById('editPaymentAmount').value = trans.amount;
+            document.getElementById('editPaymentDate').value = trans.paymentDate;
+            document.getElementById('editPaymentNote').value = trans.note || '';
+            document.getElementById('editPaymentModal').classList.add('open');
+        }
+        function handleUpdatePayment(e) {
+            e.preventDefault();
+            const id = document.getElementById('editPaymentId').value;
+            const index = transactions.findIndex(t => t.id === id);
+            if(index !== -1) {
+                transactions[index].amount = parseFloat(document.getElementById('editPaymentAmount').value);
+                transactions[index].paymentDate = document.getElementById('editPaymentDate').value;
+                transactions[index].note = document.getElementById('editPaymentNote').value;
+                saveData();
+                closeModals();
+                showToast('تم التعديل');
+            }
+        }
+        function openDeletePaymentModal(transId) {
+            document.getElementById('deletePaymentId').value = transId;
+            document.getElementById('deletePaymentModal').classList.add('open');
+        }
+        function executeDeletePayment() {
+            const id = document.getElementById('deletePaymentId').value;
+            transactions = transactions.filter(t => t.id !== id);
+            saveData();
+            closeModals();
+            showToast('تم حذف الدفعة', 'error');
+        }
+
+        // --- Reports ---
+        function renderReportsScreen() {
+            let totalContract = 0, totalPaid = 0, totalDueToDate = 0;
+            properties.forEach(p => {
+                const propTrans = transactions.filter(t => t.propertyId === p.id);
+                totalContract += (p.monthlyRent * p.durationMonths);
+                totalPaid += propTrans.reduce((s,t) => s+t.amount, 0);
+                const summary = calculateSummaryToDate(p, propTrans);
+                totalDueToDate += summary.due;
+            });
+            const totalRemaining = totalContract - totalPaid;
+            document.getElementById('report-total-contracts').innerText = formatCurrency(totalContract);
+            document.getElementById('report-total-due-date').innerText = formatCurrency(totalDueToDate);
+            document.getElementById('report-total-due').innerText = formatCurrency(totalRemaining);
+            document.getElementById('report-total-paid').innerText = formatCurrency(totalPaid);
+
+            const list = document.getElementById('individual-reports-list');
+            list.innerHTML = '';
+            if(properties.length === 0) { list.innerHTML = '<p style="text-align:center; padding:1rem;">لا توجد عقارات</p>'; } 
+            else {
+                properties.forEach(p => {
+                    const btn = document.createElement('div');
+                    btn.className = 'record-item';
+                    btn.onclick = () => generatePropertyReport(p.id);
+                    btn.innerHTML = `<div class="record-header"><h4>تقرير: ${p.propertyName}</h4><i class="fa-solid fa-file-contract text-primary"></i></div><p style="font-size:0.8rem; color:var(--text-light);">${p.tenantName}</p>`;
+                    list.appendChild(btn);
+                });
+            }
+        }
+
+        function generatePropertyReport(id) {
+            const prop = properties.find(p => p.id === id);
+            if(!prop) return;
+            const propTrans = transactions.filter(t => t.propertyId === id);
+            const summaryTotal = { due: prop.monthlyRent * prop.durationMonths, paid: propTrans.reduce((s,t) => s+t.amount, 0), remaining: 0 };
+            summaryTotal.remaining = summaryTotal.due - summaryTotal.paid;
+            const summaryToDate = calculateSummaryToDate(prop, propTrans);
+            
+            let tableRows = '';
+            const start = new Date(prop.startDate);
+            for(let i=0; i<prop.durationMonths; i++) {
+                const d = new Date(start);
+                d.setMonth(d.getMonth() + i);
+                const key = d.toISOString().slice(0, 7);
+                const mName = d.toLocaleDateString('ar-SA', { month: 'long', year: 'numeric' });
+                const mPaid = propTrans.filter(t => t.month === key).reduce((s,t) => s+t.amount, 0);
+                const mRem = prop.monthlyRent - mPaid;
+                const dueDateStr = formatDate(new Date(d.getFullYear(), d.getMonth(), 1));
+                const trans = propTrans.find(t => t.month === key);
+                const payDateStr = trans && trans.paymentDate ? formatDate(trans.paymentDate) : '-';
+                let status = 'غير مدفوع', badgeClass = 'badge-unpaid';
+                if (mPaid >= prop.monthlyRent) { status = 'مدفوع'; badgeClass = 'badge-paid'; } 
+                else if (mPaid > 0) { status = 'جزئي'; badgeClass = 'badge-partial'; }
+                tableRows += `<tr><td>${mName}</td><td>${dueDateStr}</td><td>${formatCurrency(prop.monthlyRent)}</td><td>${formatCurrency(mPaid)}</td><td>${formatCurrency(mRem)}</td><td>${payDateStr}</td><td><span class="status-badge ${badgeClass}">${status}</span></td></tr>`;
+            }
+
+            const html = `<div class="report-paper"><div class="report-header"><h2>تقرير حالة العقد</h2><p>التاريخ: ${new Date().toLocaleDateString('ar-SA')}</p></div><div class="report-summary-card"><div class="rs-item"><span class="rs-val">${formatCurrency(summaryToDate.due)}</span><span class="rs-label">الواجب (حتى اليوم)</span></div><div class="rs-item"><span class="rs-val text-success">${formatCurrency(summaryToDate.paid)}</span><span class="rs-label">المدفوع (حتى اليوم)</span></div><div class="rs-item"><span class="rs-val text-danger">${formatCurrency(summaryToDate.remaining)}</span><span class="rs-label">المتبقي (حتى اليوم)</span></div></div><div class="report-row"><span>العقار:</span> <strong>${prop.propertyName}</strong></div><div class="report-row"><span>المستأجر:</span> <strong>${prop.tenantName}</strong></div><div class="report-row"><span>المدفوع الكلي:</span> <strong>${formatCurrency(summaryTotal.paid)}</strong></div><div class="report-table-responsive"><table class="report-table"><thead><tr><th>الشهر</th><th>تاريخ الاستحقاق</th><th>الواجب</th><th>المدفوع</th><th>المتبقي</th><th>تاريخ التسديد</th><th>الحالة</th></tr></thead><tbody>${tableRows}</tbody></table></div></div>`;
+            document.getElementById('reportPaperContent').innerHTML = html;
+            document.getElementById('reportModal').classList.add('open');
+        }
+
+        function generateComprehensiveReport() {
+            if(properties.length === 0) { showToast('لا توجد بيانات', 'error'); return; }
+            let allRows = [];
+            let totalPortfolioDue = 0, totalPortfolioPaid = 0, totalPortfolioDueToDate = 0;
+            properties.forEach(p => {
+                const start = new Date(p.startDate);
+                const propTrans = transactions.filter(t => t.propertyId === p.id);
+                const sumToDate = calculateSummaryToDate(p, propTrans);
+                totalPortfolioDueToDate += sumToDate.due;
+                for(let i=0; i<p.durationMonths; i++) {
+                    const d = new Date(start);
+                    d.setMonth(d.getMonth() + i);
+                    const key = d.toISOString().slice(0, 7);
+                    const mName = d.toLocaleDateString('ar-SA', { month: 'short', year: 'numeric' });
+                    const trans = transactions.find(t => t.propertyId === p.id && t.month === key);
+                    const paid = trans ? trans.amount : 0;
+                    const remaining = p.monthlyRent - paid;
+                    const dueDateStr = formatDate(new Date(d.getFullYear(), d.getMonth(), 1));
+                    const payDateStr = trans && trans.paymentDate ? formatDate(trans.paymentDate) : '-';
+                    let status = 'غير مدفوع', badgeClass = 'badge-unpaid';
+                    if (paid >= p.monthlyRent) { status = 'مدفوع'; badgeClass = 'badge-paid'; } 
+                    else if (paid > 0) { status = 'جزئي'; badgeClass = 'badge-partial'; }
+                    allRows.push({ prop: p.propertyName, month: mName, dueDate: dueDateStr, dueAmount: p.monthlyRent, paidAmount: paid, remainingAmount: remaining, payDate: payDateStr, status: status, badgeClass: badgeClass, sortDate: d });
+                    totalPortfolioDue += p.monthlyRent;
+                    totalPortfolioPaid += paid;
+                }
+            });
+            allRows.sort((a, b) => a.sortDate - b.sortDate);
+            const htmlTable = allRows.map(row => `<tr><td style="text-align:right">${row.prop}</td><td>${row.month}</td><td>${row.dueDate}</td><td>${formatCurrency(row.dueAmount)}</td><td>${formatCurrency(row.paidAmount)}</td><td>${formatCurrency(row.remainingAmount)}</td><td>${row.payDate}</td><td><span class="status-badge ${row.badgeClass}">${row.status}</span></td></tr>`).join('');
+            const html = `<div class="report-paper"><div class="report-header"><h2>التقرير الشامل</h2><p>${new Date().toLocaleDateString('ar-SA')}</p></div><div class="report-summary-card"><div class="rs-item"><span class="rs-val">${formatCurrency(totalPortfolioDueToDate)}</span><span class="rs-label">الواجب (اليوم)</span></div><div class="rs-item"><span class="rs-val text-success">${formatCurrency(totalPortfolioPaid)}</span><span class="rs-label">المدفوع (اليوم)</span></div><div class="rs-item"><span class="rs-val text-danger">${formatCurrency(totalPortfolioDueToDate - totalPortfolioPaid)}</span><span class="rs-label">المتبقي (اليوم)</span></div></div><div class="report-row"><span>عدد العقارات:</span> <strong>${properties.length}</strong></div><div class="report-table-responsive"><table class="report-table"><thead><tr><th style="text-align:right">العقار</th><th>الشهر</th><th>تاريخ الاستحقاق</th><th>الواجب</th><th>المدفوع</th><th>المتبقي</th><th>تاريخ السداد</th><th>الحالة</th></tr></thead><tbody>${htmlTable}</tbody></table></div></div>`;
+            document.getElementById('reportPaperContent').innerHTML = html;
+            document.getElementById('reportModal').classList.add('open');
+        }
+
+        function printReport() { window.print(); }
+        function closeModals() { document.querySelectorAll('.modal').forEach(m => m.classList.remove('open')); }
+        function confirmClearData() {
+            if(confirm('تحذير: سيتم حذف جميع البيانات نهائياً. هل أنت متأكد؟')) {
+                localStorage.clear();
+                location.reload();
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', renderHome);
+    </script>
+</body>
+</html>
+```
